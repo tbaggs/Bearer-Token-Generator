@@ -52,6 +52,7 @@ namespace BearerGenerator
         private static readonly string AadInstance = ConfigurationManager.AppSettings["ida:AADInstance"];
         private static readonly string Tenant = ConfigurationManager.AppSettings["ida:Tenant"];
         private static readonly string ClientId = ConfigurationManager.AppSettings["ida:ClientId"];
+        private static readonly string RedirectUri = ConfigurationManager.AppSettings["ida:RedirectUri"];
 
         private static readonly string Authority = string.Format(CultureInfo.InvariantCulture, AadInstance, Tenant);
 
@@ -76,7 +77,7 @@ namespace BearerGenerator
             InitializeComponent();
             _app = PublicClientApplicationBuilder.Create(ClientId)
                 .WithAuthority(Authority)
-                .WithRedirectUri("http://localhost")
+                .WithRedirectUri(RedirectUri)
                 .Build();
             TokenCacheHelper.EnableSerialization(_app.UserTokenCache);
             GetBearerToken();
