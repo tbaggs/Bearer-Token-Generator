@@ -65,7 +65,7 @@ namespace BearerGenerator
         private static readonly string[] Scopes = { ServiceScope };
 
         private readonly HttpClient _httpClient = new HttpClient();
-        private readonly PublicClientApplication _app;
+        private readonly IPublicClientApplication _app;
 
         // Button strings
         private const string SignInString = "Sign In";
@@ -74,7 +74,11 @@ namespace BearerGenerator
         public MainWindow()
         {
             InitializeComponent();
-            _app = new PublicClientApplication(ClientId, Authority, TokenCacheHelper.GetUserCache());
+            _app = PublicClientApplicationBuilder.Create(ClientId)
+                .WithAuthority(Authority)
+                .WithRedirectUri("http://localhost")
+                .Build();
+            TokenCacheHelper.EnableSerialization(_app.UserTokenCache);
             GetBearerToken();
         }
 
@@ -97,7 +101,8 @@ namespace BearerGenerator
             AuthenticationResult result = null;
             try
             {
-                result = await _app.AcquireTokenSilentAsync(Scopes, accounts.FirstOrDefault());
+                result = await _app.AcquireTokenSilent(Scopes, accounts.FirstOrDefault())
+                    .ExecuteAsync();
                 SignInButton.Content = ClearCacheString;
                 SetUserName(result.Account);
             }
@@ -180,7 +185,10 @@ namespace BearerGenerator
             {
                 // Force a sign-in (PromptBehavior.Always), as the ADAL web browser might contain cookies for the current user, and using .Auto
                 // would re-sign-in the same user
-                result = await _app.AcquireTokenAsync(Scopes, accounts.FirstOrDefault(), UIBehavior.SelectAccount, string.Empty);
+                result = await _app.AcquireTokenInteractive(Scopes)
+                    .WithAccount(accounts.FirstOrDefault())
+                    .WithPrompt(Prompt.SelectAccount)
+                    .ExecuteAsync();
                 SignInButton.Content = ClearCacheString;
                 SetUserName(result.Account);
                 GetBearerToken();

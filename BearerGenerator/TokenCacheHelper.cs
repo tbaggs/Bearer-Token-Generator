@@ -33,24 +33,6 @@ namespace BearerGenerator
 {
     static class TokenCacheHelper
     {
- 
-        /// <summary>
-        /// Get the user token cache
-        /// </summary>
-        /// <returns></returns>
-        public static TokenCache GetUserCache()
-        {
-            if (_userTokenCache == null)
-            {
-                _userTokenCache = new TokenCache();
-                _userTokenCache.SetBeforeAccess(BeforeAccessNotification);
-                _userTokenCache.SetAfterAccess(AfterAccessNotification);
-            }
-            return _userTokenCache;
-        }
-
-        private static TokenCache _userTokenCache;
-
         /// <summary>
         /// Path to the token cache
         /// </summary>
@@ -58,11 +40,17 @@ namespace BearerGenerator
 
         private static readonly object FileLock = new object();
 
+        public static void EnableSerialization(ITokenCache tokenCache)
+        {
+            tokenCache.SetBeforeAccess(BeforeAccessNotification);
+            tokenCache.SetAfterAccess(AfterAccessNotification);
+        }
+
         private static void BeforeAccessNotification(TokenCacheNotificationArgs args)
         {
             lock (FileLock)
             {
-                args.TokenCache.Deserialize(File.Exists(CacheFilePath)
+                args.TokenCache.DeserializeMsalV3(File.Exists(CacheFilePath)
                     ? ProtectedData.Unprotect(File.ReadAllBytes(CacheFilePath),
                                               null,
                                               DataProtectionScope.CurrentUser)
@@ -73,19 +61,17 @@ namespace BearerGenerator
         private static void AfterAccessNotification(TokenCacheNotificationArgs args)
         {
             // if the access operation resulted in a cache update
-            if (args.TokenCache.HasStateChanged)
+            if (args.HasStateChanged)
             {
                 lock (FileLock)
                 {
                     // reflect changes in the persistent store
                     File.WriteAllBytes(CacheFilePath,
-                                       ProtectedData.Protect(args.TokenCache.Serialize(), 
+                                       ProtectedData.Protect(args.TokenCache.SerializeMsalV3(), 
                                                              null, 
                                                              DataProtectionScope.CurrentUser)
                                       );
                 }
-
-                args.TokenCache.HasStateChanged = false;
             }
 
         }
